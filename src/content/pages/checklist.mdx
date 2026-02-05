@@ -1,0 +1,60 @@
+---
+title: Web Guidelines Checklist
+description: Essential performance & accessibility guidelines for modern web development.
+---
+
+## Performance
+
+- [ ] Keep page weight under 500KB
+- [ ] Keep page load time under 3s
+- [ ] Time To First Byte under 1.3s
+- [ ] Enable Brotli/GZIP compression
+- [ ] Minify JavaScript & CSS files
+- [ ] Inline critical CSS
+- [ ] Use async/defer for non-critical JS
+- [ ] Deploy with CDN & HTTPS
+
+## Images
+
+- [ ] Set width/height for images (prevent CLS)
+- [ ] Lazy load offscreen images
+- [ ] Use WebP/AVIF formats
+- [ ] Serve images matching display size
+
+## Fonts
+
+- [ ] Use WOFF2 font format
+- [ ] Keep web font size under 300KB
+- [ ] Subset fonts to used characters
+- [ ] Prevent Flash of Unstyled Text
+
+## Accessibility
+
+- [ ] All flows keyboard-operable (WAI-ARIA)
+- [ ] Use :focus-visible for keyboard users
+- [ ] Touch targets ≥24px desktop / ≥44px mobile
+- [ ] Input font-size ≥16px on mobile (prevent zoom)
+- [ ] Respect prefers-reduced-motion
+
+## Forms
+
+- [ ] Enable Enter to submit single-input forms
+- [ ] Keep submit enabled, validate on attempt
+- [ ] Allow any input, validate & show feedback
+- [ ] Target under 500ms for POST/PATCH/DELETE
+
+## Animations
+
+- [ ] Use GPU-accelerated properties (transform, opacity)
+- [ ] Avoid transition: all
+- [ ] Only animate when clarifying cause-effect
+
+## Layout
+
+- [ ] Use flexbox/grid over JS measurements
+
+## Content
+
+- [ ] Use active voice in copy
+- [ ] Frame errors positively with solutions
+- [ ] Use proper typography (curly quotes, ellipsis)

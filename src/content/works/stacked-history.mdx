@@ -1,0 +1,22 @@
+---
+title: Stacked History
+description: Stacked browser history visualization.
+date: 2023-04-01
+type: experiment
+stack:
+  - React
+  - Motion
+  - TypeScript
+links:
+  live: http://stacked-history.vercel.app/
+  github: https://github.com/esau-morais/stacked-history.ts
+---
+
+import { Demo } from "@/components/mdx/demo";
+import { StackedHistory } from "@/components/interactive/stacked-history";
+
+Stacked browser history visualization. Click cards to reorder with spring-based animations.
+
+<Demo controls={["restart", "slow", "debug"]}>
+  <StackedHistory />
+</Demo>

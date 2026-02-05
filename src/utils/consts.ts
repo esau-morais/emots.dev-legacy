@@ -1,8 +1,9 @@
+import { client as env } from "@/lib/env";
+
 // SEO-related
-export const title =
-	"Esaú Morais | Passionate Full-Stack Web Developer" as string;
+export const title = "esaú morais - front-end engineer" as string;
 export const description =
-	"Esaú Morais is a Full-Stack Web Developer focusing on JavaScript-based technologies, such as React.js, TypeScript, Next.js, Node.js and Remix.run" as string;
+	"front-end engineer building what people need. creating unique and easy experiences." as string;
 export const ogImage = "https://emots.dev/og_image.png" as string;
 export const url = "https://emots.dev" as string;
 
@@ -10,4 +11,4 @@ export const url = "https://emots.dev" as string;
 export const BASE_URL =
 	process.env.NODE_ENV !== "development"
 		? "https://emots.dev"
-		: (process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000");
+		: (env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000");

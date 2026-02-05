@@ -26,7 +26,7 @@ export const useIntersectionObserver = (
 	// biome-ignore lint/correctness/useExhaustiveDependencies(updateEntry): leave to compiler
 	useEffect(() => {
 		const node = elementRef?.current; // DOM Ref
-		const hasIOSupport = !!window.IntersectionObserver;
+		const hasIOSupport = "IntersectionObserver" in window;
 
 		if (!hasIOSupport || frozen || !node) return;
 

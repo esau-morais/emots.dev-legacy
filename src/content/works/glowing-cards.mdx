@@ -1,0 +1,22 @@
+---
+title: Glowing Cards
+description: Glowing cards effect inspired by linear.app/features.
+date: 2023-03-01
+type: experiment
+stack:
+  - React
+  - TypeScript
+  - CSS
+links:
+  live: https://glowing-cards.vercel.app/
+  github: https://github.com/esau-morais/glowingCards.ts
+---
+
+import { Demo } from "@/components/mdx/demo";
+import { GlowingCards } from "@/components/interactive/glowing-cards";
+
+Glowing cards effect inspired by linear.app/features. Mouse-tracking glow that propagates across cards using CSS custom properties.
+
+<Demo controls={["restart", "debug"]}>
+  <GlowingCards />
+</Demo>

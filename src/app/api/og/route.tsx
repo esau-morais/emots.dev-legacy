@@ -10,7 +10,7 @@ export const GET = async (req: NextRequest) => {
 	const workTitle = searchParams.get("title");
 
 	const fontData = await readFile(
-		join(process.cwd(), "public/PPTelegraf-Regular.otf"),
+		join(process.cwd(), "public/JetBrainsMono-Regular.ttf"),
 	);
 
 	return new ImageResponse(
@@ -22,7 +22,7 @@ export const GET = async (req: NextRequest) => {
 				flexDirection: "column",
 				alignItems: "center",
 				justifyContent: "center",
-				backgroundImage: `url(${BASE_URL}/BlueLight.jpg)`,
+				backgroundImage: `url(${BASE_URL}/black_and_white_light.png)`,
 				backgroundRepeat: "no-repeat",
 				backgroundSize: "100% 100%",
 			}}
@@ -38,7 +38,7 @@ export const GET = async (req: NextRequest) => {
 					color: "white",
 					lineHeight: "120px",
 					whiteSpace: "pre-wrap",
-					fontFamily: "PPTelegraf",
+					fontFamily: "JetBrains Mono",
 				}}
 			>
 				{workTitle}
@@ -49,9 +49,10 @@ export const GET = async (req: NextRequest) => {
 			height: 1080,
 			fonts: [
 				{
-					name: "PPTelegraf",
+					name: "JetBrains Mono",
 					data: fontData,
 					style: "normal",
+					weight: 400,
 				},
 			],
 		},

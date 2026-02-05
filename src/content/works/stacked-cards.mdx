@@ -1,0 +1,22 @@
+---
+title: Stacked Cards
+description: Stacked cards component animation on scroll.
+date: 2023-01-01
+type: experiment
+stack:
+  - React
+  - React Spring
+  - TypeScript
+links:
+  live: http://cards-3morais.vercel.app/
+  github: https://github.com/esau-morais/stackedCards.ts
+---
+
+import { Demo } from "@/components/mdx/demo";
+import { StackedCards } from "@/components/interactive/stacked-cards";
+
+Stacked cards animation on scroll. Cards stack at the same position as you scroll, with spring physics for smooth transitions.
+
+<Demo controls={["restart", "slow", "debug", "auto"]}>
+  <StackedCards />
+</Demo>

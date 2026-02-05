@@ -1,14 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
-import { Toaster } from "react-hot-toast";
-
+import { type ReactNode, Suspense } from "react";
+import { ConsoleGreeting } from "@/components/console-greeting";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { NarrationProvider } from "@/components/narration";
+import { SoundProvider } from "@/components/sound-provider";
+import { SoundToggle } from "@/components/sound-toggle";
+import { GhostAnimationProvider } from "@/contexts/ghost-animation";
 import { cn } from "@/utils/classNames";
 import { description, ogImage, title, url } from "@/utils/consts";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
-import { GeistMono } from "geist/font/mono";
+import { Instrument_Serif, JetBrains_Mono } from "next/font/google";
 
 export const metadata: Metadata = {
 	title: {
@@ -56,22 +59,60 @@ export const viewport: Viewport = {
 	viewportFit: "cover",
 };
 
+const jetbrainsMono = JetBrains_Mono({
+	subsets: ["latin"],
+	variable: "--font-mono",
+});
+
+const instrumentSerif = Instrument_Serif({
+	subsets: ["latin"],
+	style: ["normal", "italic"],
+	weight: "400",
+	variable: "--font-serif",
+});
+
 const RootLayout = ({ children }: { children: ReactNode }) => {
 	return (
 		<html
 			lang="en"
-			className={cn(GeistMono.variable, "font-mono")}
+			className={cn(
+				jetbrainsMono.variable,
+				instrumentSerif.variable,
+				"font-mono hide-scrollbar",
+			)}
 			suppressHydrationWarning
 		>
 			<head />
-			<body className="relative min-h-dvh w-full bg-ctp-mantle text-ctp-text">
-				<Header />
-				<main className="my-20 min-h-[calc(100dvh-80px-160px)]">
-					{children}
-				</main>
-				<Footer />
-				<Toaster />
+			<body className="relative min-h-dvh w-full overflow-x-hidden bg-black selection:bg-gray-800 selection:text-white text-white">
+				<a
+					href="#main-content"
+					className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:z-[100] focus-visible:bg-white focus-visible:px-4 focus-visible:py-2 focus-visible:text-black focus:outline-none"
+				>
+					Skip to content
+				</a>
+				<SoundProvider>
+					<GhostAnimationProvider>
+						<NarrationProvider>
+							<div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 md:px-8">
+								<Header />
+								<main
+									id="main-content"
+									className="my-20 min-h-[calc(100dvh-80px-160px)]"
+								>
+									{children}
+								</main>
+							</div>
+							<Footer>
+								<span>emots.dev</span>
+								<Suspense>
+									<SoundToggle />
+								</Suspense>
+							</Footer>
+						</NarrationProvider>
+					</GhostAnimationProvider>
+				</SoundProvider>
 				<Analytics />
+				<ConsoleGreeting />
 			</body>
 		</html>
 	);

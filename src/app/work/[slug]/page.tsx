@@ -1,121 +1,133 @@
+import {
+	ArrowLeftIcon,
+	ArrowSquareOutIcon,
+} from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { LazyVideo } from "@/components/lazy-video";
-import { findAllWorks, findSingleWorkBySlug } from "@/lib/fetch";
-import { cn } from "@/utils/classNames";
-import { BASE_URL, url } from "@/utils/consts";
-import { getFiletypeFromString } from "@/utils/filetype";
-import { shimmer, toBase64 } from "@/utils/shimmer";
 
-type Params = {
+import { GitHubIcon } from "@/components/icons";
+import { getWork, getWorks } from "@/lib/work";
+import { BASE_URL } from "@/utils/consts";
+
+type Props = {
 	params: Promise<{ slug: string }>;
 };
 
-export const generateStaticParams = async () => {
-	const works = await findAllWorks();
-	return works?.map((work) => ({ slug: work.slug })) ?? [];
-};
+export async function generateStaticParams() {
+	const works = await getWorks();
+	return works.map((work) => ({ slug: work.slug }));
+}
 
-export const generateMetadata = async (props: Params): Promise<Metadata> => {
-	const params = await props.params;
-	const work = await findSingleWorkBySlug(params.slug);
-	if (!work) notFound();
-	const image = `${BASE_URL}/api/og?title=${work?.metadata.title}`;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+	const { slug } = await params;
+	try {
+		const { frontmatter } = await getWork(slug);
+		const ogImage = `${BASE_URL}/api/og?title=${encodeURIComponent(frontmatter.title)}`;
+		const url = `${BASE_URL}/work/${slug}`;
 
-	return {
-		title: work?.metadata.title,
-		openGraph: { url: `${url}/work/${params.slug}`, images: [image] },
-		twitter: { images: [image] },
-	};
-};
+		return {
+			title: frontmatter.title,
+			description: frontmatter.description,
+			openGraph: {
+				title: frontmatter.title,
+				description: frontmatter.description,
+				url,
+				type: "website",
+				images: [
+					{
+						url: ogImage,
+						width: 1920,
+						height: 1080,
+						alt: frontmatter.title,
+					},
+				],
+			},
+			twitter: {
+				card: "summary_large_image",
+				title: frontmatter.title,
+				description: frontmatter.description,
+				images: [ogImage],
+			},
+		};
+	} catch {
+		return { title: "not found" };
+	}
+}
 
-const SingleWorkPage = async (props: Params) => {
-	const params = await props.params;
-	const { slug } = params;
-	const work = await findSingleWorkBySlug(slug);
+export default async function SingleWorkPage({ params }: Props) {
+	const { slug } = await params;
 
-	return (
-		<div className="mx-auto max-w-4xl px-6 pb-20 pt-16">
-			<div className="inline-flex items-start space-x-2">
-				<Link className="mb-2 underline underline-offset-2" href="/work">
-					Work
+	try {
+		const { Content, frontmatter } = await getWork(slug);
+
+		return (
+			<div className="mx-auto max-w-2xl px-6">
+				<Link
+					href="/work"
+					className="mb-8 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-white"
+				>
+					<ArrowLeftIcon size={14} />
+					<span>back to work</span>
 				</Link>
-				<span>/</span>
-				<h1 className="font-bold">{work?.metadata.title}</h1>
-			</div>
 
-			<ReactMarkdown
-				components={{
-					h2: ({ children }) => (
-						<h2 className="mb-2 mt-8 text-xl font-bold">{children}</h2>
-					),
-					blockquote: ({ children }) => (
-						<blockquote className="my-4 border-l-4 border-ctp-rosewater bg-base p-4 font-medium italic leading-relaxed text-white">
-							{children}
-						</blockquote>
-					),
-					ul: ({ children }) => (
-						<ul className="ml-4 list-['▲'] flex-wrap space-y-1">{children}</ul>
-					),
-					li: ({ children }) => (
-						<li className="pl-4 marker:text-xs">{children}</li>
-					),
-					strong: ({ children }) => (
-						<strong className="font-semibold">{children}</strong>
-					),
-					a: ({ children, node, ...props }) => {
-						const video = node as any;
-						if (getFiletypeFromString(video.properties.href) === "mp4") {
-							return <LazyVideo src={video.properties.href} />;
-						}
-
-						return (
+				<header className="mb-8">
+					<div className="flex items-center gap-3">
+						<h1 className="text-2xl font-bold text-white">
+							{frontmatter.title}
+						</h1>
+						<span className="bg-gray-900 px-2 py-1 text-[10px] uppercase tracking-wider text-gray-500">
+							{frontmatter.type}
+						</span>
+					</div>
+					<p className="mt-2 text-gray-500">{frontmatter.description}</p>
+					<div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+						<time dateTime={frontmatter.date} className="text-sm text-gray-600">
+							{new Date(frontmatter.date).getFullYear()}
+						</time>
+						{frontmatter.links?.live && (
 							<a
-								className="underline decoration-blue decoration-wavy underline-offset-4"
+								href={frontmatter.links.live}
 								target="_blank"
 								rel="noopener noreferrer"
-								{...props}
+								className="inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-white"
 							>
-								{children}
+								<ArrowSquareOutIcon size={14} />
+								<span>live</span>
 							</a>
-						);
-					},
-					p: ({ children, node }) => {
-						if ((node?.children[0] as unknown as Element).tagName === "img") {
-							const image = node?.children[0] as any;
+						)}
+						{frontmatter.links?.github && (
+							<a
+								href={frontmatter.links.github}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-white"
+							>
+								<GitHubIcon size={14} />
+								<span>source</span>
+							</a>
+						)}
+					</div>
+					{frontmatter.stack && frontmatter.stack.length > 0 && (
+						<div className="mt-4 flex flex-wrap gap-1.5">
+							{frontmatter.stack.map((item) => (
+								<span
+									key={item}
+									className="bg-gray-900 px-2 py-1 text-xs text-gray-500"
+								>
+									{item}
+								</span>
+							))}
+						</div>
+					)}
+				</header>
 
-							return (
-								<div className="relative mt-4 aspect-video w-full overflow-hidden rounded-2xl">
-									<Image
-										src={image.properties.src}
-										className={cn(
-											"object-cover",
-											"transition-all duration-500 hover:scale-105 active:scale-100",
-										)}
-										alt={work?.metadata.title ?? "Work"}
-										loading="lazy"
-										fill
-										placeholder="blur"
-										blurDataURL={`data:image/svg+xml;base64,${toBase64(
-											shimmer(128, 96),
-										)}`}
-									/>
-								</div>
-							);
-						}
-						return <p className="my-1">{children}</p>;
-					},
-				}}
-				remarkPlugins={[remarkGfm]}
-			>
-				{work?.markdown ?? ""}
-			</ReactMarkdown>
-		</div>
-	);
-};
-
-export default SingleWorkPage;
+				<article className="prose-custom">
+					<Content />
+				</article>
+			</div>
+		);
+	} catch {
+		notFound();
+	}
+}

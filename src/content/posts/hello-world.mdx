@@ -1,0 +1,222 @@
+---
+title: hello, world
+description: the first post on this blog, covering challenges from rebuilding my site and migrating from next.js to tanstack start.
+date: 2026-02-04
+---
+
+i've been meaning to start writing again for a while. back in 2020/2021 i wrote a few articles on hashnode, daily.dev, and dev.to. mostly about typescript, ux, and developer tools. they served their purpose at the time, but i'm not bringing them here. fresh start.
+
+being between jobs gave me space to work on this without deadlines. no client feedback, no sprint planning, just building what felt right. turns out that changes how you approach a project.
+
+## where the ideas came from
+
+spent a lot of time on twitter/x looking at what other developers were shipping. not to copy, but to notice what made me stop scrolling. vercel's curl-able documentation; dispel's 404 page; emil's attention to small details. these are a few touches that felt intentional and caught my attention.
+
+there's also a lot of impostor syndrome on the timeline. people shipping cool stuff fast, half of it AI slop anyway. hard to tell what's real anymore. the grind was real though: posting threads, shipping things, like: r26, a competitive game for new year's eve. scatter, a tool for writing once and posting everywhere using ai. ttrak, a CLI/TUI task manager that syncs local tasks with github issues, prs, and linear.
+
+all of them shipped. none of them got much attention. and that's fine. shipping fast still matters, but right now this is about taking time for once.
+
+started collecting screenshots and put in a figma board things that looked good. most of it didn't make it into the final site, but the process of noticing helped figure out what actually mattered. those other projects aren't dead tho. planning to improve them and maybe integrate some into this website eventually.
+
+## building with claude
+
+claude code was the main tool for this rebuild. the setup evolved over time: custom rules in `CLAUDE.md` files that shape how it responds (no unnecessary comments, no empty validation, always analyze before agreeing), mcp servers for tanstack docs, and skills for specific domains like animation principles, sound synthesis and web guidelines.
+
+the workflow is closer to pair programming than magic. "does this api make sense?", "what am i missing here?". sometimes it caught things that i would probably have shipped broken. sometimes it suggested patterns i wouldn't have found otherwise. but it also required guardrails: project rules to run typecheck after changes, ask for docs before implementing unfamiliar dependencies, etc.
+
+understanding what you're building still matters. claude doesn't replace that. it's a collaborator that needs direction. working alone, having something to talk through problems with made a difference.
+
+## what i learned along the way
+
+the rest of this post covers specific things figured out while building. fonts, sounds, markdown apis, text highlighting, scrollbars, error pages, and a framework migration. some of it might be useful. some of it is just documentation for future reference.
+
+---
+
+## ui sounds without audio files
+
+as a musician, i wanted to understand how sound synthesis actually works on the web. ui feedback sounds, hovers, clicks seemed like the perfect excuse to dig into the web audio api. no samples, just oscillators and noise buffers.
+
+### analyzing real sounds first
+
+before writing code, spent time analyzing actual ui sounds. [btn0s's portfolio](https://github.com/btn0s/portfolio-calm) has clean click samples that served as reference. recorded keyboard clicks and switch toggles, then ran them through sox:
+
+```bash
+sox keyboard-click.wav -n spectrogram -o click-spectrum.png
+sox keyboard-click.wav -n stat
+```
+
+<Demo controls={["restart", "slow", "debug"]}>
+  <Spectrogram />
+</Demo>
+
+the spectrogram showed most energy concentrated between 3000-6000hz with a sharp attack and exponential decay. the stat output revealed the total duration was under 15ms. that's the target.
+
+ffmpeg helped extract specific frequency information:
+
+```bash
+ffplay -f lavfi "sine=frequency=4500:duration=0.01"
+```
+
+playing pure tones at different frequencies helped identify which range felt "clicky" versus "plinky" versus "harsh."
+
+### the hover sound
+
+a hover needs to feel light. it acknowledges the action without demanding attention. two sine waves create the effect: a fundamental at 800hz and a harmonic at 1600hz. quick exponential decay keeps it under 50ms.
+
+```typescript
+const osc = ctx.createOscillator();
+osc.type = "sine";
+osc.frequency.value = 800;
+
+const gain = ctx.createGain();
+gain.gain.setValueAtTime(0.06, t);
+gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+```
+
+exponential decay is critical. linear ramps sound artificial, like someone pulling down a fader instead of a natural sound dying away.
+
+### the click sound
+
+clicks are trickier. tonal sounds feel wrong for something percussive. the solution: filtered noise bursts.
+
+white noise contains all frequencies. a bandpass filter around 4500hz extracts just the "clicky" part. the buffer is pre-computed with exponential decay baked in:
+
+```typescript
+const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
+const data = buffer.getChannelData(0);
+for (let i = 0; i < data.length; i++) {
+  data[i] = (Math.random() * 2 - 1) * Math.exp(-i / 40);
+}
+```
+
+two ticks separated by 80ms create the "down-up" feel of a physical switch. the first tick is louder (0.35 gain) at 4500hz, the second quieter (0.25 gain) at 5500hz. the frequency shift adds subtle movement.
+
+<LinkEmbed
+  url="https://www.userinterface.wiki/generating-sounds-with-ai"
+  title="Generating Sounds with AI"
+  description="userinterface.wiki"
+/>
+
+---
+
+## narration that highlights text
+
+adding audio narration to posts seemed straightforward. playing audio is easy. the hard part: highlighting the current sentence as it's being read.
+
+elevenlabs returns character-level timing with their api. each character gets a start and end time. but the dom has text nodes with whitespace that doesn't match the audio's normalized text.
+
+the solution involves three pieces:
+
+1. **consistent normalization**: the audio generation script normalizes whitespace before sending to elevenlabs. the dom traversal must normalize the same way—collapsing consecutive spaces, trimming edges.
+
+2. **character-to-element mapping**: a treewalker traverses the article's text nodes, building an index that maps character positions to dom elements. skip code blocks and embedded components.
+
+3. **binary search on timing**: each animation frame binary-searches the timing array to find which character is currently being spoken. the corresponding dom element gets highlighted.
+
+```css
+[data-narration-status="current"] {
+  color: var(--color-white);
+  box-shadow: inset 2px 0 0 0 var(--color-white);
+}
+```
+
+ssml break tags before headings give the voice natural pauses. without them, the narration rushes through section transitions.
+
+<LinkEmbed
+  url="https://www.userinterface.wiki/12-principles-of-animation"
+  title="12 Principles of Animation"
+  description="userinterface.wiki narration implementation"
+/>
+
+---
+
+## mixed fonts, broken baselines
+
+serif fonts have a specific feel. they add weight to words, make certain phrases stand out. the goal was mixing a serif with monospace for emphasis, similar to how some writers use *italics* but with more visual presence.
+
+the problem: same font-size, different visual baselines. the text looked off.
+
+fonts have different metrics. [capsize](https://seek-oss.github.io/capsize/) exposes them: jetbrains mono has ascent=1020, descent=-300, capHeight=730. instrument serif has capHeight=720. a 10-unit difference in cap-height causes visible misalignment.
+
+first attempt was scaling font-size by the cap-height ratio. worked, but caused override issues with other styles. the simpler fix: adjust line-height on containers and nudge the serif baseline.
+
+```css
+--content-ratio: 1.32; /* (ascent + |descent|) / unitsPerEm */
+--align-offset: 0.015em;
+
+:has(.font-serif) {
+  line-height: var(--content-ratio);
+}
+
+.font-serif {
+  vertical-align: var(--align-offset);
+}
+```
+
+the container gets a line-height that accounts for the mono font's full content area. the serif gets a small vertical nudge to align cap-heights. no font-size manipulation needed.
+
+note: the math says `0.01em` ((730 - 720) / 1000), but subpixel rendering causes visual misalignment at that value. `0.015em` is the optically correct adjustment—empirically tuned by zooming in and comparing pixel edges.
+
+---
+
+## more details
+
+a few other things worth mentioning:
+
+- **markdown-first content**: blog posts are curl-able. `curl -s https://emots.dev/api/markdown/blog/hello-world` returns raw markdown. plain text interfaces that compose with other tools.
+- **custom scrollbar**: webkit pseudo-elements weren't enough. the design needed arrow buttons and proper drag tracking with pointer capture. resizeobserver watches for content changes, touch events handle mobile.
+- **404 as playground**: isometric grid with 45 layers of css text-shadow for 3d extrusion. interactive tiles with hover sounds. there's something hidden below for anyone who scrolls.
+- **error page with theater**: fake terminal logs scrolling below "something *broke*". crash reports go to discord via webhook, rate-limited with sha-256 deduplication.
+- **easter eggs**: there are a few hidden things around the site. a sequence of keys. sounds that only play in certain conditions. keep poking.
+
+<XPost url="https://x.com/rauchg/status/2011152152623005736" />
+
+<XPost url="https://x.com/abeyang/status/1913334847529238881" />
+
+<LinkEmbed
+  url="https://loggingsucks.com"
+  title="Logging Sucks"
+  description="Inspiration for the error page design"
+/>
+
+<LinkEmbed
+  url="https://www.youtube.com/watch?v=nj3hJ1OrLTw"
+  title="Westminster Chimes"
+  description="The melody that inspired something on this site"
+/>
+
+---
+
+## migrating from next.js to tanstack start
+
+next.js felt heavy for what this site does. 500KB+ of client javascript for markdown-first content seemed excessive. the framework is powerful, but most of that power wasn't being used here.
+
+started exploring alternatives. ran a poc comparing astro and tanstack start. astro won on bundle size, but its islands architecture didn't fit well with the interactive and dynamic elements scattered throughout the site. the learning curve for islands felt steep for this use case.
+
+tanstack start kept the same react mental model. no architecture shift, just different tooling. typed routes out of the box. vite's hmr noticeably faster than turbopack. the tradeoff: it's still in rc status, but acceptable risk for a personal site.
+
+<XPost url="https://x.com/mor3is_/status/2018754855448248471" />
+
+posted the migration results on twitter. the numbers looked impressive: -42% client js, -99% build output, -63% build time. got some engagement. then tim neutkens (next.js tech lead) pointed out i was including `.next/cache` in the comparison—compiler cache that doesn't get deployed. not a fair comparison.
+
+<XPost url="https://x.com/mor3is_/status/2018324553487798280" />
+
+he was right. re-ran the comparison excluding cache directories. tanstack still wins on every metric, just with smaller margins than i initially posted. here are the corrected numbers:
+
+| metric | next.js 16 | tanstack start | δ |
+|--------|-----------|----------------|---|
+| build time | 11.9s | 9.9s | -17% |
+| client js (gzip) | 362 KiB | 258 KiB | -29% |
+| output size | 17.8 MiB | 6.4 MiB | -64% |
+
+the smaller bundle comes from vite's tree-shaking being more aggressive than turbopack's. output size excludes next.js's build cache that doesn't get deployed.
+
+<XPost url="https://x.com/youyuxi/status/2018872452886208611" />
+
+lessons: measure twice, post once. and when someone corrects you publicly, own the mistake. the honest comparison still favors the migration, just not as dramatically as the initial hype suggested.
+
+---
+
+building without a deadline taught me something: when there's no one waiting for the feature, you spend more time on details that don't matter to anyone but you. whether that's good or bad depends on what you're trying to do. for a personal site, it's probably fine.
+
+more posts coming. or not. we'll see.

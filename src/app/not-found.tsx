@@ -1,20 +1,9 @@
-import Link from "next/link";
-
-import { cn } from "@/utils/classNames";
+import { IsometricGrid } from "@/components/isometric-grid";
 
 const NotFound = () => {
 	return (
-		<div className="flex h-full flex-col items-center justify-center space-y-2">
-			<h1>Not Found</h1>
-			<Link
-				className={cn(
-					"relative overflow-hidden rounded-md  bg-ctp-rosewater/90 p-2 text-black backdrop-blur-md",
-					"transition-all duration-500 hover:scale-95 active:scale-100",
-				)}
-				href="/"
-			>
-				Go home
-			</Link>
+		<div className="fixed inset-0 top-10 bottom-10 overflow-hidden">
+			<IsometricGrid />
 		</div>
 	);
 };
